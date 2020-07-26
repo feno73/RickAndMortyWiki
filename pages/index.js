@@ -17,15 +17,15 @@ export async function getServerSideProps() {
 
 
 export default function Home({ datos }) {
-  const { info, results: defaultResults = [] } = datos;
-  const [results, updateResults] = useState(defaultResults);
-  const [page, updatePage] = useState({
+  const { info, results: defaultResultados = [] } = datos;
+  const [resultados, updateResultados] = useState(defaultResultados);
+  const [pagina, updatePagina] = useState({
     ...info,
     current: defaultEndpoint
   });
 
   //tomo el valor de la pagin actual
-  const { current } = page;
+  const { current } = pagina;
 
   //cuando el valor de current cambie, se va a ejecutar el useEffect
   useEffect(() => {
@@ -36,19 +36,19 @@ export default function Home({ datos }) {
       const resp = await fetch(current);
       const proxPagina = await resp.json();
       //cambio el valor de la pagina actual
-      updatePage({
+      updatePagina({
         current,
         ...proxPagina.info
       });
 
       //si no hay pagina previa, cargo los datos
-      if ( !proxPagina.info?.prev ) {
-        updateResults(proxPagina.results);
+      if ( !proxPagina.info.prev ) {
+        updateResultados(proxPagina.results);
         return;
       }
 
       //si hay pagina previa, le agrego los nuevos datos
-      updateResults(prev => {
+      updateResultados(prev => {
         return [
           ...prev,
           ...proxPagina.results
@@ -60,10 +60,10 @@ export default function Home({ datos }) {
   }, [current]);
 
   function handleLoadMore() {
-    updatePage(prev => {
+    updatePagina(prev => {
       return {
         ...prev,
-        current: page?.next
+        current: pagina?.next
       }
     });
   }
@@ -83,14 +83,14 @@ export default function Home({ datos }) {
     const endpoint = `https://rickandmortyapi.com/api/character/?name=${value}`;
 
     //actualizo la pagina con los resultados de la busqueda
-    updatePage({
+    updatePagina({
       current: endpoint
     });
   }
   return (
     <div className="container">
       <Head>
-        <title>Create Next App</title>
+        <title>Wiki de personajes de Rick & Morty</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
@@ -109,8 +109,8 @@ export default function Home({ datos }) {
         </form>
 
         <ul className="grid">
-          {results.map(result => {
-            const { id, name, image } = result;
+          {resultados.map(resultado => {
+            const { id, name, image } = resultado;
             return(
               <li key={id} className="card">
                 <Link href="/characters/[id]" as={`/characters/${id}`}>
