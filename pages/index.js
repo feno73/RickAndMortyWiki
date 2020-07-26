@@ -1,6 +1,70 @@
-import Head from 'next/head'
+import Head from 'next/head';
+import { useState, useEffect } from 'react';
 
-export default function Home() {
+const defaultEndpoint = `https://rickandmortyapi.com/api/character/`;
+
+export async function getServerSideProps() {
+  const resp = await fetch(defaultEndpoint)
+  const datos = await resp.json();
+  return {
+    props: {
+      datos
+    }
+  }
+}
+
+
+export default function Home({ datos }) {
+  const { info, results: defaultResults = [] } = datos;
+  const [results, updateResults] = useState(defaultResults);
+  const [page, updatePage] = useState({
+    ...info,
+    current: defaultEndpoint
+  });
+
+  //tomo el valor de la pagin actual
+  const { current } = page;
+
+  //cuando el valor de current cambie, se va a ejecutar el useEffect
+  useEffect(() => {
+    if (current === defaultEndpoint) return;
+
+    //si el valor de current cambia, hago una llamada ajax para la nueva info
+    async function request() {
+      const resp = await fetch(current);
+      const proxPagina = await resp.json();
+      //cambio el valor de la pagina actual
+      updatePage({
+        current,
+        ...proxPagina.info
+      });
+
+      //si no hay pagina previa, cargo los datos
+      if ( !proxPagina.info?.prev ) {
+        updateResults(proxPagina.results);
+        return;
+      }
+
+      //si hay pagina previa, le agrego los nuevos datos
+      updateResults(prev => {
+        return [
+          ...prev,
+          ...proxPagina.results
+        ]
+      });
+    }
+
+    request();
+  }, [current]);
+
+  function handleLoadMore() {
+    updatePage(prev => {
+      return {
+        ...prev,
+        current: page?.next
+      }
+    });
+  }
   return (
     <div className="container">
       <Head>
@@ -10,42 +74,29 @@ export default function Home() {
 
       <main>
         <h1 className="title">
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
+          Wubba Lubba Dub Dub!
         </h1>
 
         <p className="description">
-          Get started by editing <code>pages/index.js</code>
+          Wiki de personajes de Rick & Morty
         </p>
 
-        <div className="grid">
-          <a href="https://nextjs.org/docs" className="card">
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className="card">
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className="card"
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="card"
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
+        <ul className="grid">
+          {results.map(result => {
+            const { id, name, image } = result;
+            return(
+              <li key={id} className="card">
+                <a href="#">
+                  <img src={image} alt={`${name}`} />
+                  <h3>{ name }</h3>
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+        <p>
+          <button onClick={handleLoadMore}>Cargar mas..</button>
+        </p>
       </main>
 
       <footer>
@@ -143,7 +194,9 @@ export default function Home() {
           align-items: center;
           justify-content: center;
           flex-wrap: wrap;
-
+          list-style: none;
+          margin-left: 0;
+          padding-left: 0;
           max-width: 800px;
           margin-top: 3rem;
         }
