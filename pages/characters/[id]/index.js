@@ -1,12 +1,11 @@
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-
+import Link from 'next/link'
 
 const defaultEndpoint = `https://rickandmortyapi.com/api/character/`;
 
-export async function getServerSideProps() {
-  const resp = await fetch(defaultEndpoint)
+export async function getServerSideProps({ query }) {
+  const { id } = query;
+  const resp = await fetch(`${defaultEndpoint}${id}`)
   const datos = await resp.json();
   return {
     props: {
@@ -16,116 +15,50 @@ export async function getServerSideProps() {
 }
 
 
-export default function Home({ datos }) {
-  const { info, results: defaultResults = [] } = datos;
-  const [results, updateResults] = useState(defaultResults);
-  const [page, updatePage] = useState({
-    ...info,
-    current: defaultEndpoint
-  });
+export default function Personaje({ datos }) {
+  const { name, image, gender, location, origin, species, status } = datos;
 
-  //tomo el valor de la pagin actual
-  const { current } = page;
-
-  //cuando el valor de current cambie, se va a ejecutar el useEffect
-  useEffect(() => {
-    if (current === defaultEndpoint) return;
-
-    //si el valor de current cambia, hago una llamada ajax para la nueva info
-    async function request() {
-      const resp = await fetch(current);
-      const proxPagina = await resp.json();
-      //cambio el valor de la pagina actual
-      updatePage({
-        current,
-        ...proxPagina.info
-      });
-
-      //si no hay pagina previa, cargo los datos
-      if ( !proxPagina.info?.prev ) {
-        updateResults(proxPagina.results);
-        return;
-      }
-
-      //si hay pagina previa, le agrego los nuevos datos
-      updateResults(prev => {
-        return [
-          ...prev,
-          ...proxPagina.results
-        ]
-      });
-    }
-
-    request();
-  }, [current]);
-
-  function handleLoadMore() {
-    updatePage(prev => {
-      return {
-        ...prev,
-        current: page?.next
-      }
-    });
-  }
-
-  function handleOnSubmitSearch(e) {
-    e.preventDefault();
-
-    //capturo los valores del evento
-    const { currentTarget = {} } = e;
-    //cargo los elementos del evento
-    const fields = Array.from(currentTarget?.elements);
-
-    const fieldQuery = fields.find(field => field.name === 'query');
-    //obtengo el valor ingresado
-    const value = fieldQuery.value || '';
-    //armo el endpoint para la llamada AJAX
-    const endpoint = `https://rickandmortyapi.com/api/character/?name=${value}`;
-
-    //actualizo la pagina con los resultados de la busqueda
-    updatePage({
-      current: endpoint
-    });
-  }
   return (
     <div className="container">
       <Head>
-        <title>Create Next App</title>
+        <title>{ name }</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <main>
         <h1 className="title">
-          Wubba Lubba Dub Dub!
+          { name }
         </h1>
-
-        <p className="description">
-          Wiki de personajes de Rick & Morty
-        </p>
-
-        <form className="search" onSubmit={handleOnSubmitSearch}>
-          <input name="query" type="search" />
-          <button>Buscar</button>
-        </form>
-
-        <ul className="grid">
-          {results.map(result => {
-            const { id, name, image } = result;
-            return(
-              <li key={id} className="card">
-                <Link href="/characters/[id]" as={`/characters/${id}`}>
-                  <a>
-                    <img src={image} alt={`${name}`} />
-                    <h3>{ name }</h3>
-                  </a>
-                </Link>
+        <div className="profile">
+          <div className="profile-image">
+            <img src={image} alt={name} />
+          </div>
+          <div className="profile-details">
+            <h2> Detalles del personaje:</h2>
+            <ul>
+              <li>
+                <strong>Nombre:</strong> {name}
               </li>
-            )
-          })}
-        </ul>
-        <p>
-          <button onClick={handleLoadMore}>Cargar mas..</button>
-        </p>
+              <li>
+                <strong>Status:</strong> {status}
+              </li>
+              <li>
+                <strong>Genero:</strong> {gender}
+              </li>
+              <li>
+                <strong>Especie:</strong> {species}
+              </li>
+              <li>
+                <strong>Ubicación:</strong> { location.name }
+              </li>
+              <li>
+                <strong>Lugar de origen:</strong> {origin.name}
+              </li>
+            </ul>
+            <Link href="/"><button>Volver</button></Link>
+          </div>
+        </div>
+        
       </main>
 
       <style jsx>{`
@@ -271,6 +204,27 @@ export default function Home({ datos }) {
           .search input,
           .search button {
             width: 100%;
+          }
+        }
+        .profile {
+          display: flex;
+          margin-top: 2em;
+        }
+        
+        @media (max-width: 600px) {
+          .profile {
+            flex-direction: column;
+          }
+        }
+        
+        .profile-image {
+          margin-right: 2em;
+        }
+        
+        @media (max-width: 600px) {
+          .profile-image {
+            max-width: 100%;
+            margin: 0 auto;
           }
         }
       `}</style>
